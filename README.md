@@ -79,3 +79,90 @@ TaskMatrix will include both a client-side application and a backend API with pe
 * Vercel
 * Render
 
+## Core Features
+
+TaskMatrix features are divided into three priority levels to keep the initial release focused and prevent scope creep.
+
+### P0 — MVP / Core Requirements
+
+These features define the minimum usable version of TaskMatrix.
+
+* **User Authentication**
+
+  * User registration and login.
+  * JWT-based authentication.
+  * Protected application routes.
+
+* **Role-Based Access Control**
+
+  * Admin, project member, and viewer permissions.
+  * Project-level access restrictions.
+
+* **Project Management**
+
+  * Create, view, update, and delete projects.
+  * Add and remove project members.
+  * View project details and current progress.
+
+* **Kanban Task Management**
+
+  * Create, edit, and delete tasks.
+  * Organize tasks into Kanban columns.
+  * Drag and drop tasks between statuses.
+  * Track task status and progress.
+
+* **Task Assignment**
+
+  * Assign tasks to project members.
+  * Display task ownership.
+  * Allow authorized users to update assignments.
+
+* **Task Priorities**
+
+  * Low, Medium, High, and Critical priority levels.
+  * Visual priority indicators.
+
+* **Task Deadlines**
+
+  * Set task due dates.
+  * Display overdue tasks.
+  * Track upcoming deadlines.
+
+* **Task Details**
+
+  * Task title and description.
+  * Status, priority, assignee, and deadline.
+  * Task creation and update timestamps.
+
+### P1 — Enhanced Features
+
+These features will improve collaboration and project visibility after the MVP is functional.
+
+* Real-time task updates using Socket.io.
+* Task comments.
+* Project activity feed.
+* Task and project search.
+* Filtering by status, priority, and assignee.
+* Project progress dashboard.
+* In-app notifications.
+* Responsive mobile interface.
+
+### P2 — Future Features
+
+These features are intentionally outside the initial MVP scope and may be considered in later development phases.
+
+* AI-assisted task creation and summarization.
+* Advanced project analytics.
+* Email notifications.
+* GitHub repository integration.
+* Automated reporting.
+* External calendar integration.
+* Subscription or payment functionality.
+
+## Scope Control
+
+The P0 feature set will be treated as the core MVP and will take priority over P1 and P2 features.
+
+P1 features will be implemented only after the core application workflow is stable. P2 features will not block the MVP and may be deferred if they conflict with the project timeline.
+
+
