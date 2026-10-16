@@ -94,6 +94,59 @@ TaskMatrix will include both a client-side application and a backend API with pe
 
 ---
 
+## Sprint 14 — Secure Authentication
+
+This sprint adds JWT-based authentication to the TaskMatrix client and Node.js backend.
+
+### Implemented
+- User registration and login using email and password.
+- Password hashing with `bcryptjs` before storing user data in MongoDB.
+- JWT generation after successful login.
+- Token storage in `localStorage` for authenticated client requests.
+- Protected API access using authentication middleware.
+- Rejection of missing, invalid, or expired authentication tokens.
+
+### Authentication API
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/auth/register` | Register a new user |
+| POST | `/api/auth/login` | Authenticate an existing user |
+
+### Authentication Testing
+
+The following checks were performed manually:
+
+- Successful login with valid credentials.
+- Successful access to the protected Task Metrics API after login.
+- Rejection of a request after removing the stored authentication token, with an `Invalid or expired token` response.
+
+### Local Setup
+
+**Backend**
+
+1. Open a terminal in the `server` directory.
+2. Install dependencies using `npm install`.
+3. Configure the required environment variables in `server/.env`.
+4. Start the development server using `npm run dev`.
+
+**Frontend**
+
+1. Open a second terminal in the `client` directory.
+2. Install dependencies using `npm install`.
+3. Start the React development server using `npm run dev`.
+
+The backend uses MongoDB for persistent storage and runs on port `5000` in the current development setup.
+
+### Environment Variables
+
+Configure the following values locally in `server/.env`:
+
+- `MONGO_URI` — MongoDB connection string.
+- `JWT_SECRET` — Secret used to sign authentication tokens.
+- `PORT` — Backend port, set to `5000` for local development.
+
+
 # Core Features
 
 TaskMatrix features are divided into three priority levels to keep the initial release focused and prevent scope creep.
