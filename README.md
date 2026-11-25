@@ -13,6 +13,11 @@ Task Matrix is a full-stack project management application designed to help team
 - Team collaboration and activity tracking.
 - Dashboard metrics and project progress overview.
 - Real-time communication using Socket.IO.
+- AI-powered task suggestions through a server-side OpenAI integration.
+- Request validation using Zod.
+- Centralized error handling and standardized API responses.
+- Rate limiting for login and AI generation endpoints.
+- Protected API routes with authentication and authorization checks.
 
 ## Technology Stack
 
@@ -33,6 +38,9 @@ Task Matrix is a full-stack project management application designed to help team
 - JWT
 - bcryptjs
 - Socket.IO
+- Zod
+- OpenAI SDK
+- express-rate-limit
 
 ## Project Structure
 
@@ -47,10 +55,11 @@ Task-Matrix/
 │   ├── middleware/
 │   ├── models/
 │   ├── routes/
+│   ├── validators/
 │   ├── server.js
 │   └── package.json
 ├── README.md
-├── Prompts.md
+├── prompts.md
 └── .gitignore
 ```
 
@@ -70,18 +79,23 @@ cd backend
 npm install
 ```
 
-Create a `.env` file using the environment variables required by the backend:
+Create a `.env` file with the required environment variables:
 
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 OPENAI_API_KEY=your_openai_api_key
+FRONTEND_URL=http://localhost:5173
 ```
 
 ### 3. Start the backend
 
-Use the start script defined in `backend/package.json`.
+Run the backend start script:
+
+```bash
+npm start
+```
 
 ### 4. Configure and start the frontend
 
@@ -92,7 +106,37 @@ cd frontend
 npm install
 ```
 
-Use the development script defined in `frontend/package.json`.
+Create a frontend `.env` file if required:
+
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+Start the frontend using:
+
+```bash
+npm run dev
+```
+
+## AI Task Generation
+
+The application includes an AI task suggestion feature. Authenticated users can enter a task idea and receive a generated task suggestion containing a title, description, subtasks, and suggested priority.
+
+The AI request is handled by the backend through:
+
+`POST /api/ai/generate-task`
+
+The OpenAI API key is stored in the backend environment and is never exposed through frontend code.
+
+## Backend Security and Validation
+
+- JWT authentication protects private API routes.
+- Zod schemas validate request bodies before database operations.
+- Invalid request payloads receive HTTP 400 responses.
+- Missing resources return HTTP 404 responses.
+- Unauthorized access is rejected.
+- Centralized error handling provides consistent JSON responses.
+- Rate limiting helps protect login and AI generation endpoints.
 
 ## Database
 
@@ -104,8 +148,8 @@ Architecture and database diagrams are included in the repository.
 
 ## Attribution
 
-This project is adapted from the Task Matrix codebase by Sakshi Gupta, with permission. Original source: https://github.com/saakshigupta-saa/Task_Matrix
+This project is adapted from the Task Matrix codebase by Sakshi Gupta, with permission.
 
-Repository maintainer: [shreyap2052-sys](https://github.com/shreyap2052-sys)
+Original source: https://github.com/saakshigupta-saa/Task_Matrix
 
-Further modifications and project contributions should be documented accurately as they are completed.
+Repository maintainer: https://github.com/shreyap2052-sys

@@ -9,22 +9,20 @@ const {
 } = require("../controllers/projectController");
 
 const protect = require("../middleware/authMiddleware");
+const validate = require("../middleware/validate");
+
+const {
+  projectSchema,
+  addMemberSchema,
+  updateProjectSchema,
+} = require("../validators/requestSchemas");
 
 const router = express.Router();
 
-// Create project
-router.post("/", protect, createProject);
-
-// Get user's projects
+router.post("/", protect, validate(projectSchema), createProject);
 router.get("/", protect, getProjects);
-
-// Add a team member to a project
-router.post("/:id/members", protect, addProjectMember);
-
-// Update project
-router.put("/:id", protect, updateProject);
-
-// Delete project
+router.post("/:id/members", protect, validate(addMemberSchema), addProjectMember);
+router.put("/:id", protect, validate(updateProjectSchema), updateProject);
 router.delete("/:id", protect, deleteProject);
 
 module.exports = router;

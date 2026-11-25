@@ -1,17 +1,10 @@
-
 const Project = require("../models/Project");
 const User = require("../models/User");
 
 // Create a new project
-const createProject = async (req, res) => {
+const createProject = async (req, res, next) => {
   try {
     const { name, description } = req.body;
-
-    if (!name) {
-      return res.status(400).json({
-        message: "Project name is required",
-      });
-    }
 
     const project = await Project.create({
       name,
@@ -20,20 +13,18 @@ const createProject = async (req, res) => {
       members: [req.user._id],
     });
 
-    res.status(201).json({
+    return res.status(201).json({
+      success: true,
       message: "Project created successfully",
       project,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Get all projects of logged-in user
-const getProjects = async (req, res) => {
+const getProjects = async (req, res, next) => {
   try {
     const projects = await Project.find({
       $or: [
@@ -45,39 +36,32 @@ const getProjects = async (req, res) => {
       .populate("members", "name email")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       projects,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Add a team member to a project
-const addProjectMember = async (req, res) => {
+const addProjectMember = async (req, res, next) => {
   try {
     const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        message: "Member email is required",
-      });
-    }
 
     const project = await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({
+        success: false,
         message: "Project not found",
       });
     }
 
-    // Only the project owner can add members
     if (project.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({
+        success: false,
         message: "Not authorized to add members to this project",
       });
     }
@@ -88,6 +72,7 @@ const addProjectMember = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
+        success: false,
         message: "User with this email was not found",
       });
     }
@@ -97,33 +82,31 @@ const addProjectMember = async (req, res) => {
     );
 
     if (alreadyMember) {
-      return res.status(400).json({
+      return res.status(409).json({
+        success: false,
         message: "User is already a member of this project",
       });
     }
 
     project.members.push(user._id);
-
     await project.save();
 
     const updatedProject = await Project.findById(project._id)
       .populate("owner", "name email")
       .populate("members", "name email");
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: "Team member added successfully",
       project: updatedProject,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Update a project
-const updateProject = async (req, res) => {
+const updateProject = async (req, res, next) => {
   try {
     const { name, description } = req.body;
 
@@ -131,67 +114,60 @@ const updateProject = async (req, res) => {
 
     if (!project) {
       return res.status(404).json({
+        success: false,
         message: "Project not found",
       });
     }
 
-    // Only the project owner can update it
     if (project.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({
+        success: false,
         message: "Not authorized to update this project",
       });
     }
 
-    if (name !== undefined) {
-      project.name = name;
-    }
-
-    if (description !== undefined) {
-      project.description = description;
-    }
+    if (name !== undefined) project.name = name;
+    if (description !== undefined) project.description = description;
 
     await project.save();
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: "Project updated successfully",
       project,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Delete a project
-const deleteProject = async (req, res) => {
+const deleteProject = async (req, res, next) => {
   try {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({
+        success: false,
         message: "Project not found",
       });
     }
 
-    // Only the project owner can delete it
     if (project.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({
+        success: false,
         message: "Not authorized to delete this project",
       });
     }
 
     await Project.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: "Project deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
@@ -202,4 +178,3 @@ module.exports = {
   updateProject,
   deleteProject,
 };
-

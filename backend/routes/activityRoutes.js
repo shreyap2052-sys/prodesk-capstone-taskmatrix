@@ -1,4 +1,3 @@
-
 const express = require("express");
 
 const {
@@ -7,11 +6,12 @@ const {
 } = require("../controllers/activityController");
 
 const protect = require("../middleware/authMiddleware");
+const validate = require("../middleware/validate");
+const { activitySchema } = require("../validators/requestSchemas");
 
 const router = express.Router();
 
-router.post("/", protect, createActivity);
+router.post("/", protect, validate(activitySchema), createActivity);
 router.get("/", protect, getActivities);
 
 module.exports = router;
-

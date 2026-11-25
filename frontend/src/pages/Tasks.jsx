@@ -147,6 +147,9 @@ function Tasks() {
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [aiIdea, setAiIdea] = useState("");
+const [generatingAI, setGeneratingAI] = useState(false);
+const [aiResult, setAiResult] = useState("");
   const [error, setError] = useState("");
 
   const [showForm, setShowForm] = useState(false);
@@ -253,6 +256,39 @@ function Tasks() {
       }),
     });
   };
+
+  const handleGenerateAI = async () => {
+  if (aiIdea.trim().length < 5) {
+    setError("Please enter a task idea with at least 5 characters.");
+    return;
+  }
+
+  setGeneratingAI(true);
+  setError("");
+  setAiResult("");
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.post(
+      `${API_URL}/api/ai/generate-task`,
+      { taskIdea: aiIdea },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setAiResult(response.data.result || "No result generated.");
+  } catch (error) {
+    setError(
+      error.response?.data?.message || "Failed to generate AI task."
+    );
+  } finally {
+    setGeneratingAI(false);
+  }
+};
 
   const handleCreateTask = async (event) => {
     event.preventDefault();
@@ -483,6 +519,55 @@ function Tasks() {
                 className="w-full px-3 sm:px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            <div className="mb-5 space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
+  <div>
+    <h3 className="font-semibold text-gray-800">AI Task Generator</h3>
+    <p className="text-sm text-gray-600">
+      Describe your task idea and let AI create a structured task.
+    </p>
+  </div>
+
+  <textarea
+    value={aiIdea}
+    onChange={(e) => setAiIdea(e.target.value)}
+    placeholder="Example: Plan and launch a new product website..."
+    rows={3}
+    className="w-full rounded-lg border border-gray-300 p-3 text-sm"
+  />
+
+  <button
+    type="button"
+    onClick={handleGenerateAI}
+    disabled={generatingAI || aiIdea.trim().length < 5}
+    className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+  >
+    {generatingAI ? "Generating..." : "Generate with AI"}
+  </button>
+
+  {aiResult && (
+    <div className="rounded-lg border border-gray-200 bg-white p-3">
+      <h4 className="mb-2 font-medium text-gray-800">AI Suggestion</h4>
+
+      <p className="whitespace-pre-wrap text-sm text-gray-700">
+        {aiResult}
+      </p>
+
+      <button
+        type="button"
+        onClick={() =>
+          setFormData((current) => ({
+            ...current,
+            description: aiResult,
+          }))
+        }
+        className="mt-3 rounded-lg bg-gray-800 px-3 py-2 text-sm text-white hover:bg-gray-700"
+      >
+        Use as Description
+      </button>
+    </div>
+  )}
+</div>
 
             {/* Description */}
             <div>

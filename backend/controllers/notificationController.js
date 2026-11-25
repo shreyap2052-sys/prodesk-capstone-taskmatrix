@@ -1,55 +1,44 @@
-
 const Notification = require("../models/Notification");
 
 // Create a notification
-const createNotification = async (req, res) => {
+const createNotification = async (req, res, next) => {
   try {
-    const { user, message, type } = req.body;
-
-    if (!user || !message) {
-      return res.status(400).json({
-        message: "User and message are required",
-      });
-    }
+    const { message, type } = req.body;
 
     const notification = await Notification.create({
-      user,
+      user: req.user._id,
       message,
       type,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
+      success: true,
       message: "Notification created successfully",
       notification,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Get notifications for logged-in user
-const getNotifications = async (req, res) => {
+const getNotifications = async (req, res, next) => {
   try {
     const notifications = await Notification.find({
       user: req.user._id,
     }).sort({ createdAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       notifications,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Mark notification as read
-const markNotificationAsRead = async (req, res) => {
+const markNotificationAsRead = async (req, res, next) => {
   try {
     const notification = await Notification.findOne({
       _id: req.params.id,
@@ -58,23 +47,21 @@ const markNotificationAsRead = async (req, res) => {
 
     if (!notification) {
       return res.status(404).json({
+        success: false,
         message: "Notification not found",
       });
     }
 
     notification.isRead = true;
-
     await notification.save();
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: "Notification marked as read",
       notification,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
@@ -83,4 +70,3 @@ module.exports = {
   getNotifications,
   markNotificationAsRead,
 };
-

@@ -1,27 +1,27 @@
 const OpenAI = require("openai");
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const generateTask = async (req, res) => {
   try {
-    const { taskIdea } = req.body;
-
-    if (!taskIdea) {
-      return res.status(400).json({
-        message: "Task idea is required",
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        message: "AI service is currently unavailable",
       });
     }
+
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const { taskIdea } = req.body;
 
     const response = await client.responses.create({
       model: "gpt-5-mini",
       input: `
 You are an AI productivity assistant for a project management app.
 
-Convert the following task idea into a structured task.
+Convert this task idea into a structured task:
 
-Task idea:
 ${taskIdea}
 
 Return:
@@ -34,20 +34,21 @@ Keep the response practical and concise.
 `,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: "AI task generated successfully",
       result: response.output_text,
     });
   } catch (error) {
-    console.error("AI generation error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.error("AI generation failed:", error.message);
+    }
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
       message: "Failed to generate AI task",
-      error: error.message,
     });
   }
 };
 
-module.exports = {
-  generateTask,
-};
+module.exports = { generateTask };

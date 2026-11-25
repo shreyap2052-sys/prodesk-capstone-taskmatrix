@@ -1,4 +1,3 @@
-
 const Task = require("../models/Task");
 const Project = require("../models/Project");
 const Activity = require("../models/Activity");
@@ -6,7 +5,7 @@ const Notification = require("../models/Notification");
 const { getIO } = require("../socket");
 
 // Create a new task
-const createTask = async (req, res) => {
+const createTask = async (req, res, next) => {
   try {
     const {
       title,
@@ -18,49 +17,39 @@ const createTask = async (req, res) => {
       deadline,
     } = req.body;
 
-    if (!title || !project) {
-      return res.status(400).json({
-        message: "Task title and project are required",
-      });
-    }
-
     const projectExists = await Project.findById(project);
 
     if (!projectExists) {
       return res.status(404).json({
+        success: false,
         message: "Project not found",
       });
     }
 
     const isMember =
-      projectExists.owner.toString() ===
-        req.user._id.toString() ||
+      projectExists.owner.toString() === req.user._id.toString() ||
       projectExists.members.some(
-        (member) =>
-          member.toString() === req.user._id.toString()
+        (member) => member.toString() === req.user._id.toString()
       );
 
     if (!isMember) {
       return res.status(403).json({
-        message:
-          "Not authorized to create a task in this project",
+        success: false,
+        message: "Not authorized to create a task in this project",
       });
     }
 
-    // Check that the assigned user belongs to the project
     if (assignedTo) {
       const isAssigneeMember =
-        projectExists.owner.toString() ===
-          assignedTo.toString() ||
+        projectExists.owner.toString() === assignedTo.toString() ||
         projectExists.members.some(
-          (member) =>
-            member.toString() === assignedTo.toString()
+          (member) => member.toString() === assignedTo.toString()
         );
 
       if (!isAssigneeMember) {
         return res.status(400).json({
-          message:
-            "Assigned user must be a member of this project",
+          success: false,
+          message: "Assigned user must be a member of this project",
         });
       }
     }
@@ -75,7 +64,6 @@ const createTask = async (req, res) => {
       deadline,
     });
 
-    // Create notification for assignee
     if (assignedTo) {
       await Notification.create({
         user: assignedTo,
@@ -84,7 +72,6 @@ const createTask = async (req, res) => {
       });
     }
 
-    // Create activity for task creation
     await Activity.create({
       project,
       user: req.user._id,
@@ -92,20 +79,18 @@ const createTask = async (req, res) => {
       task: task._id,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
+      success: true,
       message: "Task created successfully",
       task,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Get all tasks for the logged-in user's projects
-const getTasks = async (req, res) => {
+const getTasks = async (req, res, next) => {
   try {
     const projects = await Project.find({
       $or: [
@@ -114,9 +99,7 @@ const getTasks = async (req, res) => {
       ],
     }).select("_id");
 
-    const projectIds = projects.map(
-      (project) => project._id
-    );
+    const projectIds = projects.map((project) => project._id);
 
     const tasks = await Task.find({
       project: { $in: projectIds },
@@ -125,19 +108,17 @@ const getTasks = async (req, res) => {
       .populate("assignedTo", "name email")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       tasks,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Get a single task by ID
-const getTaskById = async (req, res) => {
+const getTaskById = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate("project", "name")
@@ -145,79 +126,73 @@ const getTaskById = async (req, res) => {
 
     if (!task) {
       return res.status(404).json({
+        success: false,
         message: "Task not found",
       });
     }
 
-    const project = await Project.findById(
-      task.project._id
-    );
+    const project = await Project.findById(task.project._id);
 
     if (!project) {
       return res.status(404).json({
+        success: false,
         message: "Project not found",
       });
     }
 
     const isMember =
-      project.owner.toString() ===
-        req.user._id.toString() ||
+      project.owner.toString() === req.user._id.toString() ||
       project.members.some(
-        (member) =>
-          member.toString() === req.user._id.toString()
+        (member) => member.toString() === req.user._id.toString()
       );
 
     if (!isMember) {
       return res.status(403).json({
-        message:
-          "Not authorized to view this task",
+        success: false,
+        message: "Not authorized to view this task",
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       task,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Update a task
-const updateTask = async (req, res) => {
+const updateTask = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
 
     if (!task) {
       return res.status(404).json({
+        success: false,
         message: "Task not found",
       });
     }
 
-    const project = await Project.findById(
-      task.project
-    );
+    const project = await Project.findById(task.project);
 
     if (!project) {
       return res.status(404).json({
+        success: false,
         message: "Project not found",
       });
     }
 
     const isMember =
-      project.owner.toString() ===
-        req.user._id.toString() ||
+      project.owner.toString() === req.user._id.toString() ||
       project.members.some(
-        (member) =>
-          member.toString() === req.user._id.toString()
+        (member) => member.toString() === req.user._id.toString()
       );
 
     if (!isMember) {
       return res.status(403).json({
-        message:
-          "Not authorized to update this task",
+        success: false,
+        message: "Not authorized to update this task",
       });
     }
 
@@ -230,36 +205,26 @@ const updateTask = async (req, res) => {
       deadline,
     } = req.body;
 
-    // Store old values before updating
     const oldStatus = task.status;
     const oldAssignedTo = task.assignedTo
       ? task.assignedTo.toString()
       : null;
 
-    if (title !== undefined) {
-      task.title = title;
-    }
+    if (title !== undefined) task.title = title;
+    if (description !== undefined) task.description = description;
 
-    if (description !== undefined) {
-      task.description = description;
-    }
-
-    // Check that the new assigned user belongs to the project
     if (assignedTo !== undefined) {
       if (assignedTo) {
         const isAssigneeMember =
-          project.owner.toString() ===
-            assignedTo.toString() ||
+          project.owner.toString() === assignedTo.toString() ||
           project.members.some(
-            (member) =>
-              member.toString() ===
-              assignedTo.toString()
+            (member) => member.toString() === assignedTo.toString()
           );
 
         if (!isAssigneeMember) {
           return res.status(400).json({
-            message:
-              "Assigned user must be a member of this project",
+            success: false,
+            message: "Assigned user must be a member of this project",
           });
         }
       }
@@ -267,21 +232,12 @@ const updateTask = async (req, res) => {
       task.assignedTo = assignedTo || null;
     }
 
-    if (status !== undefined) {
-      task.status = status;
-    }
-
-    if (priority !== undefined) {
-      task.priority = priority;
-    }
-
-    if (deadline !== undefined) {
-      task.deadline = deadline;
-    }
+    if (status !== undefined) task.status = status;
+    if (priority !== undefined) task.priority = priority;
+    if (deadline !== undefined) task.deadline = deadline;
 
     await task.save();
 
-    // Send real-time task update
     const io = getIO();
 
     io.emit("taskUpdated", {
@@ -293,11 +249,7 @@ const updateTask = async (req, res) => {
       assignedTo: task.assignedTo,
     });
 
-    // Create activity when task status changes
-    if (
-      status !== undefined &&
-      oldStatus !== status
-    ) {
+    if (status !== undefined && oldStatus !== status) {
       const statusNames = {
         todo: "To Do",
         "in-progress": "In Progress",
@@ -307,15 +259,11 @@ const updateTask = async (req, res) => {
       await Activity.create({
         project: task.project,
         user: req.user._id,
-        action: `moved the task "${task.title}" to ${
-          statusNames[status] || status
-        }`,
+        action: `moved the task "${task.title}" to ${statusNames[status] || status}`,
         task: task._id,
       });
     }
 
-    // Create notification when task is assigned
-    // to a new member
     if (
       assignedTo !== undefined &&
       assignedTo &&
@@ -328,66 +276,58 @@ const updateTask = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: "Task updated successfully",
       task,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // Delete a task
-const deleteTask = async (req, res) => {
+const deleteTask = async (req, res, next) => {
   try {
-    const task = await Task.findById(
-      req.params.id
-    );
+    const task = await Task.findById(req.params.id);
 
     if (!task) {
       return res.status(404).json({
+        success: false,
         message: "Task not found",
       });
     }
 
-    const project = await Project.findById(
-      task.project
-    );
+    const project = await Project.findById(task.project);
 
     if (!project) {
       return res.status(404).json({
+        success: false,
         message: "Project not found",
       });
     }
 
     const isMember =
-      project.owner.toString() ===
-        req.user._id.toString() ||
+      project.owner.toString() === req.user._id.toString() ||
       project.members.some(
-        (member) =>
-          member.toString() === req.user._id.toString()
+        (member) => member.toString() === req.user._id.toString()
       );
 
     if (!isMember) {
       return res.status(403).json({
-        message:
-          "Not authorized to delete this task",
+        success: false,
+        message: "Not authorized to delete this task",
       });
     }
 
     await Task.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({
+    return res.status(200).json({
+      success: true,
       message: "Task deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
@@ -398,4 +338,3 @@ module.exports = {
   updateTask,
   deleteTask,
 };
-

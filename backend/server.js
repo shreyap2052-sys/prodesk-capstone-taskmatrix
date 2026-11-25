@@ -1,7 +1,4 @@
-
-// Load environment variables first
 require("dotenv").config();
-
 require("dns").setServers(["8.8.8.8"]);
 
 const express = require("express");
@@ -18,26 +15,28 @@ const activityRoutes = require("./routes/activityRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 
+const errorHandler = require("./middleware/errorHandler");
+
 const app = express();
-
-// Create HTTP server
 const server = http.createServer(app);
-
-// Initialize Socket.IO
 const io = initSocket(server);
 
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+}));
+
 app.use(express.json());
 
-// Routes
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "TaskMatrix API is running",
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
@@ -45,28 +44,32 @@ app.use("/api/activities", activityRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/ai", aiRoutes);
 
-// MongoDB connection
+// Standardized 404 response
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "API route not found",
+  });
+});
+
+// Global error handler (must remain last)
+app.use(errorHandler);
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("MongoDB connected successfully ✅");
+    if (process.env.NODE_ENV !== "production") {
+      console.log("MongoDB connected successfully");
+    }
   })
   .catch((error) => {
-    console.error(
-      "MongoDB connection failed ❌",
-      error.message
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.error("MongoDB connection failed:", error.message);
+    }
   });
 
-// Test route
-app.get("/", (req, res) => {
-  res.json({
-    message: "TaskMatrix API is running 🚀",
-  });
-});
-
-// Start server
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`Server running on port ${PORT}`);
+  }
 });
-
