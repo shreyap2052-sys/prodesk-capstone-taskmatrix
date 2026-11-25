@@ -146,10 +146,4 @@ The application uses MongoDB with Mongoose models for users, projects, tasks, ac
 
 Architecture and database diagrams are included in the repository.
 
-## Attribution
-
-This project is adapted from the Task Matrix codebase by Sakshi Gupta, with permission.
-
-Original source: https://github.com/saakshigupta-saa/Task_Matrix
-
 Repository maintainer: https://github.com/shreyap2052-sys
