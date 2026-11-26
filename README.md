@@ -1,49 +1,40 @@
-## Sprint 18 – Inventory Management & Analytics
 
-This sprint extends the Task Matrix backend with an inventory management system designed to handle a large product dataset.
+## Sprint 19 – Real-Time Ticket Locking with Socket.IO
 
-### Product Inventory
+This sprint introduces real-time ticket locking to the Task Matrix platform, allowing multiple agents to coordinate ticket handling through Socket.IO.
 
-- Created a Product model with product name, SKU, category, price, cost, stock quantity, reorder level, and last-updated fields.
-- Generated and seeded 50,000 sample products using Faker.
-- Added MongoDB indexes for SKU, category, and product name.
-- Implemented paginated inventory retrieval with search, category filtering, and sorting.
-- Added product creation, updating, and deletion endpoints.
-- Implemented Zod validation for product requests.
-- Enforced business rules, including non-negative stock quantities and price not being lower than cost.
+### Real-Time Ticket Locking
 
-### Inventory Analytics
+- Integrated Socket.IO with the existing Express HTTP server.
+- Implemented an in-memory Map to track locked tickets and their socket owners.
+- Added dashboard room joining for connected agents.
+- Implemented ticket locking and unlocking events.
+- Prevented multiple agents from locking the same ticket simultaneously.
+- Added ownership checks so only the agent holding a lock can release it.
+- Broadcast ticket lock and unlock updates to connected clients.
+- Implemented automatic lock release when an agent disconnects, preventing ghost locks.
+- Integrated real-time lock state updates into the React Tasks interface.
 
-- Implemented category-wise inventory analytics using MongoDB aggregation.
-- Used `$match`, `$group`, and `$project` stages.
-- Calculated total products, total stock, and inventory valuation for each category.
+### Socket.IO Events
 
-### Inventory API Endpoints
+| Event | Description |
+|---|---|
+| `join_dashboard` | Joins the ticket dashboard |
+| `lock_ticket` | Requests a lock on a ticket |
+| `unlock_ticket` | Releases a ticket lock |
+| `current_locks` | Sends existing lock information |
+| `ticket_locked` | Broadcasts a newly locked ticket |
+| `ticket_unlocked` | Broadcasts an unlocked ticket |
+| `lock_rejected` | Notifies a client when a lock request is rejected |
+| `unlock_rejected` | Notifies a client when an unlock request is rejected |
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/inventory` | Retrieve paginated inventory |
-| POST | `/api/inventory` | Create a product |
-| PUT | `/api/inventory/:id` | Update a product |
-| DELETE | `/api/inventory/:id` | Delete a product |
-| GET | `/api/analytics` | Retrieve category-wise analytics |
+### Disconnect Handling
 
-**Supported inventory query parameters:** `page`, `limit`, `search`, `category`, and `sort`.
-
-### Database Seeding
-
-The standalone Faker seeder generates 50,000 sample products in batches.
-
-Run from the backend directory:
-
-```bash
-npm run seed
-```
-
-Note: The seeder clears existing Product records before inserting the generated dataset.
+When a connected agent disconnects, the backend checks all active locks owned by that socket and automatically releases them. The updated state is broadcast to other connected clients.
 
 ### Verification
 
-- Verified 50,000 product records in MongoDB.
-- Confirmed the required database indexes.
-- Tested inventory retrieval and analytics endpoints locally.
+- Confirmed successful Socket.IO server initialization.
+- Confirmed successful frontend Socket.IO connection.
+- Implemented frontend listeners for real-time lock and unlock updates.
+- Implemented duplicate-lock prevention and automatic disconnect cleanup.
