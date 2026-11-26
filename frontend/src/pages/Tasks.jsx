@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
@@ -11,7 +11,13 @@ import {
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-function DraggableTask({ task }) {
+
+function DraggableTask({
+  task,
+  lockOwner,
+  socketId,
+  onToggleLock,
+}) {
   const {
     attributes,
     listeners,
@@ -29,13 +35,16 @@ function DraggableTask({ task }) {
       }
     : undefined;
 
+  const isLocked = Boolean(lockOwner);
+  const lockedByMe = lockOwner === socketId;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className={`touch-none ${
+      className={`touch-none bg-white rounded-xl p-4 shadow-sm transition ${
         isDragging ? "opacity-50" : ""
       }`}
     >
@@ -46,7 +55,7 @@ function DraggableTask({ task }) {
             event.preventDefault();
           }
         }}
-        className="block bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition cursor-grab active:cursor-grabbing"
+        className="block cursor-grab active:cursor-grabbing"
       >
         <h3 className="font-semibold text-gray-800 break-words">
           {task.title}
@@ -73,7 +82,7 @@ function DraggableTask({ task }) {
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t">
+        <div className="flex items-center justify-between gap-3 mt-4">
           <div className="w-8 h-8 shrink-0 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-semibold">
             {task.assignedTo?.name
               ? task.assignedTo.name
@@ -87,16 +96,49 @@ function DraggableTask({ task }) {
 
           <span className="text-xs text-gray-500 text-right">
             {task.deadline
-              ? `Due ${new Date(
-                  task.deadline
-                ).toLocaleDateString()}`
+              ? `Due ${new Date(task.deadline).toLocaleDateString()}`
               : "No deadline"}
           </span>
         </div>
       </Link>
+
+      <div className="mt-4 pt-3 border-t">
+        {isLocked && (
+          <p className="text-xs text-gray-500 mb-2">
+            {lockedByMe
+              ? "You currently hold this lock"
+              : `Locked by another agent (${lockOwner.slice(0, 6)})`}
+          </p>
+        )}
+
+        <button
+          type="button"
+          disabled={isLocked && !lockedByMe}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleLock(task._id, lockedByMe);
+          }}
+          className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition ${
+            lockedByMe
+              ? "bg-red-100 text-red-700 hover:bg-red-200"
+              : isLocked
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+          }`}
+        >
+          {lockedByMe
+            ? "🔓 Unlock Ticket"
+            : isLocked
+            ? "🔒 Locked"
+            : "🔒 Lock Ticket"}
+        </button>
+      </div>
     </div>
   );
 }
+
 
 function DroppableColumn({
   column,
@@ -132,9 +174,12 @@ function DroppableColumn({
 
         {tasks.map((task) => (
           <DraggableTask
-            key={task._id}
-            task={task}
-          />
+  key={task._id}
+  task={task}
+  lockOwner={ticketLocks[String(task._id)]}
+  socketId={socketId}
+  onToggleLock={handleToggleLock}
+/>
         ))}
       </div>
     </div>
@@ -144,6 +189,10 @@ function DroppableColumn({
 function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [ticketLocks, setTicketLocks] = useState({});
+const [socketId, setSocketId] = useState("");
+
+const socketRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -220,29 +269,102 @@ const [aiResult, setAiResult] = useState("");
     fetchProjects();
   }, []);
 
-  // Listen for real-time task updates
-  useEffect(() => {
-    const socket = io(API_URL);
+  const handleToggleLock = (ticketId, lockedByMe) => {
+  const socket = socketRef.current;
 
-    socket.on("taskUpdated", (updatedTask) => {
-      setTasks((currentTasks) =>
-        currentTasks.map((task) =>
-          task._id === updatedTask.taskId
-            ? {
-                ...task,
-                status: updatedTask.status,
-                priority: updatedTask.priority,
-                assignedTo: updatedTask.assignedTo,
-              }
-            : task
-        )
-      );
+  if (!socket?.connected) {
+    setError("Socket connection unavailable. Please try again.");
+    return;
+  }
+
+  setError("");
+
+  if (lockedByMe) {
+    socket.emit("unlock_ticket", String(ticketId));
+  } else {
+    socket.emit("lock_ticket", String(ticketId));
+  }
+};
+
+  
+// Real-time task updates and ticket locking
+useEffect(() => {
+  const socket = io(API_URL, {
+    withCredentials: true,
+  });
+
+  socketRef.current = socket;
+
+  socket.on("connect", () => {
+    console.log("Ticket dashboard connected:", socket.id);
+
+    setSocketId(socket.id);
+
+    socket.emit("join_dashboard");
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Ticket dashboard disconnected");
+    setSocketId("");
+  });
+
+  // Receive all existing ticket locks
+  socket.on("current_locks", (locks) => {
+    const lockMap = {};
+
+    locks.forEach(({ ticketId, socketId }) => {
+      lockMap[ticketId] = socketId;
     });
 
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+    setTicketLocks(lockMap);
+  });
+
+  // Receive a newly created lock
+  socket.on("ticket_locked", ({ ticketId, socketId }) => {
+    setTicketLocks((current) => ({
+      ...current,
+      [ticketId]: socketId,
+    }));
+  });
+
+  // Receive an unlock or automatic ghost-lock release
+  socket.on("ticket_unlocked", ({ ticketId }) => {
+    setTicketLocks((current) => {
+      const updated = { ...current };
+      delete updated[ticketId];
+      return updated;
+    });
+  });
+
+  socket.on("lock_rejected", ({ message }) => {
+    setError(message);
+  });
+
+  socket.on("unlock_rejected", ({ message }) => {
+    setError(message);
+  });
+
+  // Preserve existing task update functionality
+  socket.on("taskUpdated", (updatedTask) => {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task._id === updatedTask.taskId
+          ? {
+              ...task,
+              status: updatedTask.status,
+              priority: updatedTask.priority,
+              assignedTo: updatedTask.assignedTo,
+            }
+          : task
+      )
+    );
+  });
+
+  return () => {
+    socket.disconnect();
+    socketRef.current = null;
+  };
+}, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;

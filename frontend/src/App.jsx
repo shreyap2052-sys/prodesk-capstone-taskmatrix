@@ -1,7 +1,4 @@
-
-import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { io } from "socket.io-client";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -15,25 +12,7 @@ import TaskDetails from "./pages/TaskDetails";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
-
 function App() {
-  useEffect(() => {
-    const socket = io(API_URL);
-
-    socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
 
   return (
     <Routes>
