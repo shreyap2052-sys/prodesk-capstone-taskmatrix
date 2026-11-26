@@ -1,3 +1,4 @@
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -18,10 +19,12 @@ const registerUser = async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Public registrations are always clients.
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
+      role: "client",
     });
 
     const token = jwt.sign(
@@ -38,6 +41,7 @@ const registerUser = async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -85,6 +89,7 @@ const loginUser = async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role || "client",
       },
     });
   } catch (error) {

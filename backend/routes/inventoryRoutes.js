@@ -1,5 +1,8 @@
+
 const express = require("express");
 const validate = require("../middleware/validate");
+const protect = require("../middleware/authMiddleware");
+
 const {
   createProductSchema,
   updateProductSchema,
@@ -13,6 +16,9 @@ const {
 } = require("../controllers/inventoryController");
 
 const router = express.Router();
+
+// All inventory endpoints require authentication.
+router.use(protect);
 
 router.get("/", getInventory);
 router.post("/", validate(createProductSchema), createProduct);

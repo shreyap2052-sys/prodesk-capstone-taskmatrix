@@ -8,7 +8,7 @@ const cors = require("cors");
 const http = require("http");
 
 const { initSocket } = require("./socket");
-
+const invoiceRoutes = require("./routes/invoiceRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const authRoutes = require("./routes/authRoutes");
@@ -17,7 +17,8 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
-
+const paymentRoutes = require("./routes/paymentRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -46,6 +47,14 @@ app.use(
   })
 );
 
+// Stripe webhook must receive the untouched raw request body.
+app.use(
+  "/api/webhooks",
+  express.raw({ type: "application/json" }),
+  webhookRoutes
+);
+
+// Parse JSON for all other API routes.
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -55,6 +64,7 @@ app.get("/", (req, res) => {
   });
 });
 
+app.use("/api/payments", paymentRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
@@ -63,6 +73,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/invoices", invoiceRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
