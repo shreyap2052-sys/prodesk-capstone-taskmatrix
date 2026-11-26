@@ -15,6 +15,9 @@ const authRoutes = require("./routes/authRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const inventoryRoutes = require("./routes/inventoryRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
+
 
 const errorHandler = require("./middleware/errorHandler");
 
@@ -58,6 +61,8 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
